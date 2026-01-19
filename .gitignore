@@ -1,1 +1,8 @@
 .env
+db_data/
+target/
+bin/
+*.class
+
+.idea/
+*.iml
