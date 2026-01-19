@@ -6,20 +6,24 @@ services:
     container_name: swapp_mysql
     restart: always
     environment:
-      MYSQL_DATABASE: swapp_db
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ${ DB_NAME }
+      MYSQL_ROOT_PASSWORD: ${ DB_PASSWORD }
+
     ports:
-      - "3306:3306"
+      - "${DB_PORT}:3306"
     volumes:
       - db_data:/var/lib/mysql
       - ./sql-script:/docker-entrypoint-initdb.d
 
-  adminer:
-    image: adminer
-    container_name: swapp_adminer
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: swapp_pma
     restart: always
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
     ports:
-      - "8080:8080"
+      - "8080:80"
 
 volumes:
   db_data:
