@@ -1,13 +1,16 @@
+import io.github.cdimascio.dotenv.Dotenv;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DataBaseConnector {
     private static Connection connect;
+    Dotenv dotenv = Dotenv.load();
 
-    private String url = ${JDBC_URL}
-    private String user = ${DB_USER};
-    private String password = ${DB_PASSWORD};
+    private String url = dotenv.get("JDBC_URL");
+    private String user = dotenv.get("DB_USER");
+    private String password = dotenv.get("DB_PASSWORD");
 
     private DataBaseConnector(){
         try {
@@ -19,9 +22,11 @@ public class DataBaseConnector {
         }
     }
 
-    public static Connection getInstance(){
+    public Connection getInstance(){
         if (connect == null){
             new DataBaseConnector();
+            System.out.println("Connexion à MySQL établie !");
         }
+        return connect;
     }
 }
