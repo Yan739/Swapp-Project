@@ -4,7 +4,6 @@ USE swapp_db;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
--- 1. Adresse
 CREATE TABLE Adresse(
    Id_Adresse INT AUTO_INCREMENT,
    rue VARCHAR(100),
@@ -14,7 +13,6 @@ CREATE TABLE Adresse(
    CONSTRAINT adresse_id_pk PRIMARY KEY(Id_Adresse)
 ) ENGINE=InnoDB;
 
--- 2. Client
 CREATE TABLE Client (
    Id_Client INT AUTO_INCREMENT,
    nom VARCHAR(50) NOT NULL,
@@ -27,7 +25,6 @@ CREATE TABLE Client (
    CONSTRAINT client_id_adresse_fk FOREIGN KEY(Id_Adresse) REFERENCES Adresse(Id_Adresse)
 ) ENGINE=InnoDB;
 
--- 3. Article
 CREATE TABLE Article (
    Id_Article INT AUTO_INCREMENT,
    nom VARCHAR(100) NOT NULL,
@@ -42,7 +39,6 @@ CREATE TABLE Article (
    CONSTRAINT article_id_pk PRIMARY KEY(Id_Article)
 ) ENGINE=InnoDB;
 
--- 4. Etat
 CREATE TABLE Etat(
    Id_Etat INT AUTO_INCREMENT,
    statut VARCHAR(50),
@@ -52,7 +48,6 @@ CREATE TABLE Etat(
    CONSTRAINT etat_id_article_fk FOREIGN KEY(Id_Article) REFERENCES Article(Id_Article)
 ) ENGINE=InnoDB;
 
--- 5. Gestion Achat Article Client
 CREATE TABLE gestion_achat_d_article_client(
    Id_Gestion_arch_art_client INT AUTO_INCREMENT,
    bon_d_achat BOOLEAN,
@@ -62,7 +57,6 @@ CREATE TABLE gestion_achat_d_article_client(
    CONSTRAINT gestion_ach_art_client_id_pk PRIMARY KEY(Id_Gestion_arch_art_client)
 ) ENGINE=InnoDB;
 
--- 6. Paiement
 CREATE TABLE Paiement (
    Id_Paiement INT AUTO_INCREMENT,
    date_paiement DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -72,7 +66,6 @@ CREATE TABLE Paiement (
    CONSTRAINT paiement_id_pk PRIMARY KEY(Id_Paiement)
 ) ENGINE=InnoDB;
 
--- 7. Fournisseur
 CREATE TABLE Fournisseur (
    Id_Fournisseur INT AUTO_INCREMENT,
    nom VARCHAR(100),
@@ -83,7 +76,6 @@ CREATE TABLE Fournisseur (
    CONSTRAINT fournisseur_id_pk PRIMARY KEY(Id_Fournisseur)
 ) ENGINE=InnoDB;
 
--- 8. Achat Materielle
 CREATE TABLE Achat_materielle (
    Id_Achat_materielle INT AUTO_INCREMENT,
    num_suivi INT,
@@ -95,7 +87,6 @@ CREATE TABLE Achat_materielle (
    CONSTRAINT achat_materielle_id_fournisseur_fk FOREIGN KEY(Id_Fournisseur) REFERENCES Fournisseur(Id_Fournisseur)
 ) ENGINE=InnoDB;
 
--- 9. Facture
 CREATE TABLE Facture (
    Id_Facture INT AUTO_INCREMENT,
    date_facturation DATE,
@@ -106,7 +97,6 @@ CREATE TABLE Facture (
    CONSTRAINT facture_id_paiement_fk FOREIGN KEY(Id_Paiement) REFERENCES Paiement(Id_Paiement)
 ) ENGINE=InnoDB;
 
--- 10. Commande
 CREATE TABLE Commande (
    Id_Commande INT AUTO_INCREMENT,
    date_commande DATE,
@@ -119,7 +109,6 @@ CREATE TABLE Commande (
    CONSTRAINT commande_id_client_fk FOREIGN KEY(Id_Client) REFERENCES Client(Id_Client)
 ) ENGINE=InnoDB;
 
--- 11. Reparation & Type
 CREATE TABLE Type_reparation(
    Id_Type_reparation INT AUTO_INCREMENT,
    vente BOOLEAN,
@@ -146,7 +135,6 @@ CREATE TABLE Reparation (
    CONSTRAINT reparation_id_article_fk FOREIGN KEY(Id_Article) REFERENCES Article(Id_Article)
 ) ENGINE=InnoDB;
 
--- 12. TABLES DE LIAISON (N-N)
 CREATE TABLE DEPOSER(
    Id_Client INT,
    Id_Article INT,
@@ -204,7 +192,6 @@ CREATE TABLE Ligne_commande(
    CONSTRAINT ligne_commande_id_article_fk FOREIGN KEY(Id_Article) REFERENCES Article(Id_Article)
 ) ENGINE=InnoDB;
 
--- 13. Divers
 CREATE TABLE Historique(
    Id_Historique INT AUTO_INCREMENT,
    action VARCHAR(255),
@@ -283,19 +270,16 @@ CREATE PROCEDURE PasserCommande(
 BEGIN
    DECLARE v_Id_Facture INT;
 
-   -- Création d'une nouvelle facture (montant 0 par défaut, sera mis à jour au paiement)
    INSERT INTO Facture (date_facturation, montant, garantie, Id_Paiement)
    VALUES (CURDATE(), 0, FALSE, NULL);
 
    SET v_Id_Facture = LAST_INSERT_ID();
 
-   -- Insertion de la commande
    INSERT INTO Commande (date_commande, statut, Quantite_Demandee, Id_Facture, Id_Client)
    VALUES (CURDATE(), 'En cours', p_Quantite_Commandee, v_Id_Facture, p_Id_Client);
 
    SET p_Id_Commande = LAST_INSERT_ID();
 
-   -- Insertion de la ligne de commande (le trigger update_stock s'occupera du stock)
    INSERT INTO Ligne_commande (Id_Commande, Id_Article, Quantite_Commandee)
    VALUES (p_Id_Commande, p_Id_Article, p_Quantite_Commandee);
 
@@ -339,25 +323,20 @@ BEGIN
 
    START TRANSACTION;
 
-   -- Récupérer l'ID facture lié à la commande
    SELECT Id_Facture INTO v_idFacture FROM Commande WHERE Id_Commande = p_idCommande;
    SET r_idFacture = v_idFacture;
 
-   -- Insérer le paiement
    INSERT INTO Paiement (date_paiement, montant, mode_paiement, statut)
    VALUES (NOW(), p_montantFacture, p_modePaiement, 'Payé');
 
    SET r_idPaiement = LAST_INSERT_ID();
 
-   -- Mettre à jour la facture
    UPDATE Facture
    SET montant = p_montantFacture, Id_Paiement = r_idPaiement
    WHERE Id_Facture = v_idFacture;
 
-   -- Mettre à jour le statut de la commande
    UPDATE Commande SET statut = 'Terminée' WHERE Id_Commande = p_idCommande;
 
-   -- Historique
    INSERT INTO Historique (action, date_action)
    VALUES (CONCAT('Paiement effectué pour commande: ', p_idCommande), NOW());
 
