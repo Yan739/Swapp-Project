@@ -27,23 +27,30 @@ public class CommandeRepository {
         }
     }
 
-    public void finaliserPaiement(int idCommande, double montant, String modePaiement) {
+    public int finaliserPaiement(int idCommande, double montant, String modePaiement) {
         String sql = "{call FacturerEtPayer(?, ?, ?, ?, ?)}";
+        int idFacture = -1;
+
         try (Connection conn = DataBaseConnector.getInstance();
              CallableStatement cstmt = conn.prepareCall(sql)) {
 
             cstmt.setInt(1, idCommande);
             cstmt.setDouble(2, montant);
             cstmt.setString(3, modePaiement);
+
             cstmt.registerOutParameter(4, Types.INTEGER);
             cstmt.registerOutParameter(5, Types.INTEGER);
 
             cstmt.execute();
-            System.out.println("Paiement validé. Facture générée : " + cstmt.getInt(4));
+
+            idFacture = cstmt.getInt(4);
+            System.out.println("Paiement validé. Facture n°" + idFacture + " générée.");
 
         } catch (SQLException e) {
-            System.err.println("Erreur Procédure FacturerEtPayer: " + e.getMessage());
+            System.err.println("Erreur Procédure FacturerEtPayer : " + e.getMessage());
         }
+
+        return idFacture;
     }
 
     public void afficherToutesLesCommandes() {

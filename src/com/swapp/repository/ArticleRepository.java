@@ -169,7 +169,7 @@ public class ArticleRepository {
         return articles;
     }
 
-    public void updateStock(int idArticle, int nouvelleQuantite) {
+    public boolean updateStock(int idArticle, int nouvelleQuantite) {
         String sql = "UPDATE Article SET Quantite_Disponible = ? WHERE Id_Article = ?";
 
         try (Connection connect = DataBaseConnector.getInstance();
@@ -181,10 +181,12 @@ public class ArticleRepository {
             int rows = pstm.executeUpdate();
             if (rows > 0) {
                 System.out.println("Stock mis à jour pour l'article #" + idArticle);
+                return true;
             }
         } catch (SQLException e) {
             System.err.println("Erreur de mise à jour du stock : " + e.getMessage());
         }
+        return false;
     }
 
     public List<Article> searchByName(String nomRecherche) {
@@ -218,6 +220,73 @@ public class ArticleRepository {
         return articles;
     }
 
-}
+    public boolean updateStatut(int idArticle, String nouveauStatut) {
+        String sql = "UPDATE Article SET statut = ? WHERE Id_Article = ?";
 
+        try (Connection connect = DataBaseConnector.getInstance();
+             PreparedStatement pstm = connect.prepareStatement(sql)) {
+
+            pstm.setString(1, nouveauStatut);
+
+            pstm.setInt(2, idArticle);
+
+            int rowsAffected = pstm.executeUpdate();
+
+            if (rowsAffected > 0) {
+                System.out.println("Le statut de l'article #" + idArticle + " est désormais : " + nouveauStatut);
+                return pstm.executeUpdate() > 0;
+            } else {
+                System.out.println("Aucun article trouvé avec l'ID : " + idArticle);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Erreur lors de la mise à jour du statut : " + e.getMessage());
+        }
+        return false;
+    }
+
+    public List<Article> findArticlesEnAlerte(int seuil) {
+        List<Article> alertes = new ArrayList<>();
+        String sql = "SELECT * FROM Article WHERE Quantite_Disponible <= ?";
+
+        try (Connection conn = DataBaseConnector.getInstance();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, seuil);
+            ResultSet result = pstmt.executeQuery();
+            while (result.next()) {
+                new Article(
+                        result.getInt("Id_Article"),
+                        result.getString("nom"),
+                        result.getString("statut"),
+                        result.getString("type"),
+                        result.getString("etat"),
+                        result.getInt("annee"),
+                        result.getString("num_serie"),
+                        result.getBoolean("garantie"),
+                        result.getInt("Quantite_Disponible"),
+                        result.getDouble("prix")
+                );
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return alertes;
+    }
+
+    public int countArticlesSousSeuil(int seuil) {
+        String sql = "SELECT COUNT(*) FROM Article WHERE Quantite_Disponible <= ?";
+
+        try (Connection conn = DataBaseConnector.getInstance();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, seuil);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            System.err.println("Erreur lors du comptage des alertes stock : " + e.getMessage());
+        }
+        return 0;
+    }
+}
 
