@@ -1,4 +1,4 @@
-package com.swapp.repository;
+package test;
 
 
 class ClientRepositoryTest {
